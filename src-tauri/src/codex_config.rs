@@ -2,8 +2,7 @@
 use std::path::PathBuf;
 
 use crate::config::{
-    atomic_write, delete_file, get_home_dir, sanitize_provider_name, write_json_file,
-    write_text_file,
+    atomic_write, delete_file, sanitize_provider_name, write_json_file, write_text_file,
 };
 use crate::error::AppError;
 use serde_json::Value;
@@ -16,8 +15,25 @@ pub fn get_codex_config_dir() -> PathBuf {
     if let Some(custom) = crate::settings::get_codex_override_dir() {
         return custom;
     }
+    if let Some(custom) = crate::settings::get_codex_wsl_override_dir() {
+        return custom;
+    }
+    crate::config::get_home_dir().join(".codex")
+}
 
-    get_home_dir().join(".codex")
+pub fn get_all_codex_config_dirs() -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+    if let Some(custom) = crate::settings::get_codex_override_dir() {
+        dirs.push(custom);
+    } else {
+        dirs.push(crate::config::get_home_dir().join(".codex"));
+    }
+    if let Some(custom) = crate::settings::get_codex_wsl_override_dir() {
+        if !dirs.contains(&custom) {
+            dirs.push(custom);
+        }
+    }
+    dirs
 }
 
 /// 获取 Codex auth.json 路径

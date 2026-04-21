@@ -273,14 +273,24 @@ export interface Settings {
   // ===== 设备级目录覆盖 =====
   // 覆盖 Claude Code 配置目录（可选）
   claudeConfigDir?: string;
+  // 覆盖 Claude Code WSL 配置目录（可选）
+  claudeWslConfigDir?: string;
   // 覆盖 Codex 配置目录（可选）
   codexConfigDir?: string;
+  // 覆盖 Codex WSL 配置目录（可选）
+  codexWslConfigDir?: string;
   // 覆盖 Gemini 配置目录（可选）
   geminiConfigDir?: string;
+  // 覆盖 Gemini WSL 配置目录（可选）
+  geminiWslConfigDir?: string;
   // 覆盖 OpenCode 配置目录（可选）
   opencodeConfigDir?: string;
+  // 覆盖 OpenCode WSL 配置目录（可选）
+  opencodeWslConfigDir?: string;
   // 覆盖 OpenClaw 配置目录（可选）
   openclawConfigDir?: string;
+  // 覆盖 OpenClaw WSL 配置目录（可选）
+  openclawWslConfigDir?: string;
 
   // ===== 当前供应商 ID（设备级）=====
   // 当前 Claude 供应商 ID（优先于数据库 is_current）

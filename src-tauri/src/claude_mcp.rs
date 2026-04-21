@@ -210,7 +210,18 @@ pub fn set_has_completed_onboarding() -> Result<bool, AppError> {
     }
 
     obj.insert("hasCompletedOnboarding".into(), Value::Bool(true));
-    write_json_value(&path, &root)?;
+    let paths = crate::config::get_all_claude_mcp_paths();
+    for p in paths {
+        let mut r = if p.exists() {
+            read_json_value(&p).unwrap_or_else(|_| serde_json::json!({}))
+        } else {
+            serde_json::json!({})
+        };
+        if let Some(o) = r.as_object_mut() {
+            o.insert("hasCompletedOnboarding".into(), Value::Bool(true));
+            let _ = write_json_value(&p, &r);
+        }
+    }
     Ok(true)
 }
 
@@ -232,7 +243,19 @@ pub fn clear_has_completed_onboarding() -> Result<bool, AppError> {
         return Ok(false);
     }
 
-    write_json_value(&path, &root)?;
+    let paths = crate::config::get_all_claude_mcp_paths();
+    for p in paths {
+        if !p.exists() {
+            continue;
+        }
+        if let Ok(mut r) = read_json_value(&p) {
+            if let Some(o) = r.as_object_mut() {
+                if o.remove("hasCompletedOnboarding").is_some() {
+                    let _ = write_json_value(&p, &r);
+                }
+            }
+        }
+    }
     Ok(true)
 }
 
@@ -297,14 +320,35 @@ pub fn upsert_mcp_server(id: &str, spec: Value) -> Result<bool, AppError> {
 
     let before = root.clone();
     if let Some(servers) = root.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
-        servers.insert(id.to_string(), spec);
+        servers.insert(id.to_string(), spec.clone());
     }
 
     if before == root && path.exists() {
         return Ok(false);
     }
 
-    write_json_value(&path, &root)?;
+    let paths = crate::config::get_all_claude_mcp_paths();
+    for p in paths {
+        let mut r = if p.exists() {
+            read_json_value(&p).unwrap_or_else(|_| serde_json::json!({}))
+        } else {
+            serde_json::json!({})
+        };
+        
+        {
+            let o = r.as_object_mut().unwrap(); // We know it's an object or we made it one
+            if !o.contains_key("mcpServers") {
+                o.insert("mcpServers".into(), serde_json::json!({}));
+            }
+        }
+        
+        if let Some(servers) = r.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
+            servers.insert(id.to_string(), spec.clone());
+        }
+        
+        let _ = write_json_value(&p, &r);
+    }
+
     Ok(true)
 }
 
@@ -324,8 +368,22 @@ pub fn delete_mcp_server(id: &str) -> Result<bool, AppError> {
     if !existed {
         return Ok(false);
     }
-    write_json_value(&path, &root)?;
-    Ok(true)
+    let paths = crate::config::get_all_claude_mcp_paths();
+    let mut any_existed = false;
+    for p in paths {
+        if !p.exists() {
+            continue;
+        }
+        if let Ok(mut r) = read_json_value(&p) {
+            if let Some(servers) = r.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
+                if servers.remove(id).is_some() {
+                    let _ = write_json_value(&p, &r);
+                    any_existed = true;
+                }
+            }
+        }
+    }
+    Ok(any_existed)
 }
 
 pub fn validate_command_in_path(cmd: &str) -> Result<bool, AppError> {
@@ -387,61 +445,53 @@ pub fn read_mcp_servers_map() -> Result<std::collections::HashMap<String, Value>
 pub fn set_mcp_servers_map(
     servers: &std::collections::HashMap<String, Value>,
 ) -> Result<(), AppError> {
-    let path = user_config_path();
-    let mut root = if path.exists() {
-        read_json_value(&path)?
-    } else {
-        serde_json::json!({})
-    };
-
-    // 构建 mcpServers 对象：移除 UI 辅助字段（enabled/source），仅保留实际 MCP 规范
-    // 检测目标路径是否为 WSL，若是则跳过 cmd /c 包装
-    let is_wsl_target = is_wsl_path(&path);
-    if is_wsl_target {
-        log::info!("检测到 WSL 路径，跳过 cmd /c 包装: {}", path.display());
-    }
-    let mut out: Map<String, Value> = Map::new();
-    for (id, spec) in servers.iter() {
-        let mut obj = if let Some(map) = spec.as_object() {
-            map.clone()
+    let paths = crate::config::get_all_claude_mcp_paths();
+    for path in paths {
+        let mut root = if path.exists() {
+            read_json_value(&path).unwrap_or_else(|_| serde_json::json!({}))
         } else {
-            return Err(AppError::McpValidation(format!(
-                "MCP 服务器 '{id}' 不是对象"
-            )));
+            serde_json::json!({})
         };
 
-        if let Some(server_val) = obj.remove("server") {
-            let server_obj = server_val.as_object().cloned().ok_or_else(|| {
-                AppError::McpValidation(format!("MCP 服务器 '{id}' server 字段不是对象"))
-            })?;
-            obj = server_obj;
+        let is_wsl_target = is_wsl_path(&path);
+        if is_wsl_target {
+            log::info!("检测到 WSL 路径，跳过 cmd /c 包装: {}", path.display());
+        }
+        let mut out: Map<String, Value> = Map::new();
+        for (id, spec) in servers.iter() {
+            let mut obj = if let Some(map) = spec.as_object() {
+                map.clone()
+            } else {
+                continue;
+            };
+
+            if let Some(server_val) = obj.remove("server") {
+                if let Some(server_obj) = server_val.as_object().cloned() {
+                    obj = server_obj;
+                }
+            }
+
+            obj.remove("enabled");
+            obj.remove("source");
+            obj.remove("id");
+            obj.remove("name");
+            obj.remove("description");
+            obj.remove("tags");
+            obj.remove("homepage");
+            obj.remove("docs");
+
+            if !is_wsl_target {
+                wrap_command_for_windows(&mut obj);
+            }
+
+            out.insert(id.clone(), Value::Object(obj));
         }
 
-        obj.remove("enabled");
-        obj.remove("source");
-        obj.remove("id");
-        obj.remove("name");
-        obj.remove("description");
-        obj.remove("tags");
-        obj.remove("homepage");
-        obj.remove("docs");
-
-        // Windows 平台自动包装 npx/npm 等命令为 cmd /c 格式（WSL 路径除外）
-        if !is_wsl_target {
-            wrap_command_for_windows(&mut obj);
+        if let Some(obj) = root.as_object_mut() {
+            obj.insert("mcpServers".into(), Value::Object(out));
+            let _ = write_json_value(&path, &root);
         }
-
-        out.insert(id.clone(), Value::Object(obj));
     }
-
-    {
-        let obj = root
-            .as_object_mut()
-            .ok_or_else(|| AppError::Config("~/.claude.json 根必须是对象".into()))?;
-        obj.insert("mcpServers".into(), Value::Object(out));
-    }
-
-    write_json_value(&path, &root)?;
     Ok(())
 }
 

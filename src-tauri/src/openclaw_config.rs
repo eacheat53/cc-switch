@@ -5,7 +5,7 @@
 
 use crate::config::{atomic_write, get_app_config_dir};
 use crate::error::AppError;
-use crate::settings::{effective_backup_retain_count, get_openclaw_override_dir};
+use crate::settings::effective_backup_retain_count;
 use chrono::Local;
 use indexmap::IndexMap;
 use json_five::rt::parser::{
@@ -33,11 +33,29 @@ const OPENCLAW_TOOLS_PROFILES: &[&str] = &["minimal", "coding", "messaging", "fu
 /// 默认路径: `~/.openclaw/`
 /// 可通过 settings.openclaw_config_dir 覆盖
 pub fn get_openclaw_dir() -> PathBuf {
-    if let Some(override_dir) = get_openclaw_override_dir() {
-        return override_dir;
+    if let Some(custom) = crate::settings::get_openclaw_override_dir() {
+        return custom;
+    }
+    if let Some(custom) = crate::settings::get_openclaw_wsl_override_dir() {
+        return custom;
     }
 
     crate::config::get_home_dir().join(".openclaw")
+}
+
+pub fn get_all_openclaw_dirs() -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+    if let Some(custom) = crate::settings::get_openclaw_override_dir() {
+        dirs.push(custom);
+    } else {
+        dirs.push(crate::config::get_home_dir().join(".openclaw"));
+    }
+    if let Some(custom) = crate::settings::get_openclaw_wsl_override_dir() {
+        if !dirs.contains(&custom) {
+            dirs.push(custom);
+        }
+    }
+    dirs
 }
 
 /// 获取 OpenClaw 配置文件路径
@@ -196,6 +214,7 @@ pub struct OpenClawToolsConfig {
 /// 读取 OpenClaw 配置文件
 ///
 /// 支持 JSON5 格式，返回完整的配置 JSON 对象
+
 pub fn read_openclaw_config() -> Result<Value, AppError> {
     let path = get_openclaw_config_path();
     if !path.exists() {
@@ -358,7 +377,18 @@ impl OpenClawConfigDocument {
             .transpose()?
             .map(|path| path.display().to_string());
 
-        atomic_write(&self.path, next_source.as_bytes())?;
+        let dirs = get_all_openclaw_dirs();
+        for dir in dirs {
+            if !dir.exists() {
+                let _ = fs::create_dir_all(&dir);
+            }
+            let path = dir.join("openclaw.json");
+            if let Err(e) = atomic_write(&path, next_source.as_bytes()) {
+                log::warn!("Failed to write OpenClaw config to {}: {}", path.display(), e);
+            } else {
+                log::debug!("OpenClaw config written to {:?}", path);
+            }
+        }
 
         let warnings = scan_openclaw_health_from_value(
             &json5::from_str::<Value>(&next_source).map_err(|e| {
@@ -368,7 +398,6 @@ impl OpenClawConfigDocument {
             })?,
         );
 
-        log::debug!("OpenClaw config written to {:?}", self.path);
         Ok(OpenClawWriteOutcome {
             backup_path,
             warnings,

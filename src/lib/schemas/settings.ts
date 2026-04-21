@@ -19,10 +19,15 @@ export const settingsSchema = z.object({
 
   // 设备级目录覆盖
   claudeConfigDir: directorySchema.nullable().optional(),
+  claudeWslConfigDir: directorySchema.nullable().optional(),
   codexConfigDir: directorySchema.nullable().optional(),
+  codexWslConfigDir: directorySchema.nullable().optional(),
   geminiConfigDir: directorySchema.nullable().optional(),
+  geminiWslConfigDir: directorySchema.nullable().optional(),
   opencodeConfigDir: directorySchema.nullable().optional(),
+  opencodeWslConfigDir: directorySchema.nullable().optional(),
   openclawConfigDir: directorySchema.nullable().optional(),
+  openclawWslConfigDir: directorySchema.nullable().optional(),
 
   // 当前供应商 ID（设备级）
   currentProviderClaude: z.string().optional(),

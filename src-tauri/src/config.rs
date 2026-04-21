@@ -37,6 +37,9 @@ pub fn get_claude_config_dir() -> PathBuf {
     if let Some(custom) = crate::settings::get_claude_override_dir() {
         return custom;
     }
+    if let Some(custom) = crate::settings::get_claude_wsl_override_dir() {
+        return custom;
+    }
 
     get_home_dir().join(".claude")
 }
@@ -66,7 +69,38 @@ pub fn get_claude_mcp_path() -> PathBuf {
             return path;
         }
     }
+    if let Some(custom_dir) = crate::settings::get_claude_wsl_override_dir() {
+        if let Some(path) = derive_mcp_path_from_override(&custom_dir) {
+            return path;
+        }
+    }
     get_default_claude_mcp_path()
+}
+
+/// 获取所有的 Claude MCP 配置文件路径（如果同时配置了 Windows 和 WSL）
+pub fn get_all_claude_mcp_paths() -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+    let mut default_added = false;
+
+    if let Some(custom_dir) = crate::settings::get_claude_override_dir() {
+        if let Some(path) = derive_mcp_path_from_override(&custom_dir) {
+            paths.push(path);
+            default_added = true;
+        }
+    }
+    if !default_added {
+        paths.push(get_default_claude_mcp_path());
+    }
+
+    if let Some(custom_dir) = crate::settings::get_claude_wsl_override_dir() {
+        if let Some(path) = derive_mcp_path_from_override(&custom_dir) {
+            if !paths.contains(&path) {
+                paths.push(path);
+            }
+        }
+    }
+
+    paths
 }
 
 /// 获取 Claude Code 主配置文件路径
@@ -83,6 +117,37 @@ pub fn get_claude_settings_path() -> PathBuf {
     }
     // 默认新建：回落到标准文件名 settings.json（不再生成 claude.json）
     settings
+}
+
+/// 获取所有的 Claude Code 主配置文件路径（如果同时配置了 Windows 和 WSL）
+pub fn get_all_claude_settings_paths() -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+    
+    if let Some(custom) = crate::settings::get_claude_override_dir() {
+        dirs.push(custom);
+    } else {
+        dirs.push(get_home_dir().join(".claude"));
+    }
+
+    if let Some(custom) = crate::settings::get_claude_wsl_override_dir() {
+        if !dirs.contains(&custom) {
+            dirs.push(custom);
+        }
+    }
+
+    dirs.into_iter().map(|dir| {
+        let settings = dir.join("settings.json");
+        if settings.exists() {
+            settings
+        } else {
+            let legacy = dir.join("claude.json");
+            if legacy.exists() {
+                legacy
+            } else {
+                settings
+            }
+        }
+    }).collect()
 }
 
 /// 获取应用配置目录路径 (~/.cc-switch)

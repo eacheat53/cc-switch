@@ -1,4 +1,4 @@
-use crate::config::{get_home_dir, write_text_file};
+use crate::config::write_text_file;
 use crate::error::AppError;
 use serde_json::Value;
 use std::collections::HashMap;
@@ -10,13 +10,36 @@ pub fn get_gemini_dir() -> PathBuf {
     if let Some(custom) = crate::settings::get_gemini_override_dir() {
         return custom;
     }
+    if let Some(custom) = crate::settings::get_gemini_wsl_override_dir() {
+        return custom;
+    }
 
-    get_home_dir().join(".gemini")
+    // fallback to old ~/.cc-switch/.gemini for compatibility, or ~/.gemini if not found
+    let legacy = crate::config::get_home_dir().join(".cc-switch").join(".gemini");
+    if legacy.exists() {
+        return legacy;
+    }
+    crate::config::get_home_dir().join(".gemini")
 }
 
-/// 获取 Gemini .env 文件路径
-pub fn get_gemini_env_path() -> PathBuf {
-    get_gemini_dir().join(".env")
+pub fn get_all_gemini_dirs() -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+    if let Some(custom) = crate::settings::get_gemini_override_dir() {
+        dirs.push(custom);
+    } else {
+        let legacy = crate::config::get_home_dir().join(".cc-switch").join(".gemini");
+        if legacy.exists() {
+            dirs.push(legacy);
+        } else {
+            dirs.push(crate::config::get_home_dir().join(".gemini"));
+        }
+    }
+    if let Some(custom) = crate::settings::get_gemini_wsl_override_dir() {
+        if !dirs.contains(&custom) {
+            dirs.push(custom);
+        }
+    }
+    dirs
 }
 
 /// 解析 .env 文件内容为键值对
@@ -152,38 +175,46 @@ pub fn read_gemini_env() -> Result<HashMap<String, String>, AppError> {
     Ok(parse_env_file(&content))
 }
 
-/// 写入 Gemini .env 文件（原子操作）
+/// 写入 Gemini .env 文件（原子操作）到所有目录
 pub fn write_gemini_env_atomic(map: &HashMap<String, String>) -> Result<(), AppError> {
-    let path = get_gemini_env_path();
+    let content = serialize_env_file(map);
+    let paths = get_all_gemini_env_paths();
+    
+    for path in paths {
+        // 确保目录存在
+        if let Some(parent) = path.parent() {
+            if let Err(e) = fs::create_dir_all(parent) {
+                log::warn!("Failed to create parent dir {}: {}", parent.display(), e);
+                continue;
+            }
 
-    // 确保目录存在
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).map_err(|e| AppError::io(parent, e))?;
+            // 设置目录权限为 700（仅所有者可读写执行）
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                if let Ok(metadata) = fs::metadata(parent) {
+                    let mut perms = metadata.permissions();
+                    perms.set_mode(0o700);
+                    let _ = fs::set_permissions(parent, perms);
+                }
+            }
+        }
 
-        // 设置目录权限为 700（仅所有者可读写执行）
+        if let Err(e) = write_text_file(&path, &content) {
+            log::warn!("Failed to write to {}: {}", path.display(), e);
+            continue;
+        }
+
+        // 设置文件权限为 600（仅所有者可读写）
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-            let mut perms = fs::metadata(parent)
-                .map_err(|e| AppError::io(parent, e))?
-                .permissions();
-            perms.set_mode(0o700);
-            fs::set_permissions(parent, perms).map_err(|e| AppError::io(parent, e))?;
+            if let Ok(metadata) = fs::metadata(&path) {
+                let mut perms = metadata.permissions();
+                perms.set_mode(0o600);
+                let _ = fs::set_permissions(&path, perms);
+            }
         }
-    }
-
-    let content = serialize_env_file(map);
-    write_text_file(&path, &content)?;
-
-    // 设置文件权限为 600（仅所有者可读写）
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let mut perms = fs::metadata(&path)
-            .map_err(|e| AppError::io(&path, e))?
-            .permissions();
-        perms.set_mode(0o600);
-        fs::set_permissions(&path, perms).map_err(|e| AppError::io(&path, e))?;
     }
 
     Ok(())
@@ -275,11 +306,24 @@ pub fn validate_gemini_settings_strict(settings: &Value) -> Result<(), AppError>
     Ok(())
 }
 
+/// 获取 Gemini .env 文件路径
+pub fn get_gemini_env_path() -> PathBuf {
+    get_gemini_dir().join(".env")
+}
+
+pub fn get_all_gemini_env_paths() -> Vec<PathBuf> {
+    get_all_gemini_dirs().into_iter().map(|d| d.join(".env")).collect()
+}
+
 /// 获取 Gemini settings.json 文件路径
 ///
 /// 返回路径：`~/.gemini/settings.json`（与 `.env` 文件同级）
 pub fn get_gemini_settings_path() -> PathBuf {
     get_gemini_dir().join("settings.json")
+}
+
+pub fn get_all_gemini_settings_paths() -> Vec<PathBuf> {
+    get_all_gemini_dirs().into_iter().map(|d| d.join("settings.json")).collect()
 }
 
 /// 更新 Gemini 目录 settings.json 中的 security.auth.selectedType 字段
@@ -292,44 +336,48 @@ pub fn get_gemini_settings_path() -> PathBuf {
 /// # 参数
 /// - `selected_type`: 要设置的 selectedType 值（如 "gemini-api-key" 或 "oauth-personal"）
 fn update_selected_type(selected_type: &str) -> Result<(), AppError> {
-    let settings_path = get_gemini_settings_path();
+    let paths = get_all_gemini_settings_paths();
+    
+    for settings_path in paths {
+        // 确保目录存在
+        if let Some(parent) = settings_path.parent() {
+            let _ = fs::create_dir_all(parent);
+        }
 
-    // 确保目录存在
-    if let Some(parent) = settings_path.parent() {
-        fs::create_dir_all(parent).map_err(|e| AppError::io(parent, e))?;
-    }
+        // 读取现有的 settings.json（如果存在）
+        let mut settings_content = if settings_path.exists() {
+            if let Ok(content) = fs::read_to_string(&settings_path) {
+                serde_json::from_str::<Value>(&content).unwrap_or_else(|_| serde_json::json!({}))
+            } else {
+                serde_json::json!({})
+            }
+        } else {
+            serde_json::json!({})
+        };
 
-    // 读取现有的 settings.json（如果存在）
-    let mut settings_content = if settings_path.exists() {
-        let content =
-            fs::read_to_string(&settings_path).map_err(|e| AppError::io(&settings_path, e))?;
-        serde_json::from_str::<Value>(&content).unwrap_or_else(|_| serde_json::json!({}))
-    } else {
-        serde_json::json!({})
-    };
-
-    // 只更新 security.auth.selectedType 字段
-    if let Some(obj) = settings_content.as_object_mut() {
-        let security = obj
-            .entry("security")
-            .or_insert_with(|| serde_json::json!({}));
-
-        if let Some(security_obj) = security.as_object_mut() {
-            let auth = security_obj
-                .entry("auth")
+        // 只更新 security.auth.selectedType 字段
+        if let Some(obj) = settings_content.as_object_mut() {
+            let security = obj
+                .entry("security")
                 .or_insert_with(|| serde_json::json!({}));
 
-            if let Some(auth_obj) = auth.as_object_mut() {
-                auth_obj.insert(
-                    "selectedType".to_string(),
-                    Value::String(selected_type.to_string()),
-                );
+            if let Some(security_obj) = security.as_object_mut() {
+                let auth = security_obj
+                    .entry("auth")
+                    .or_insert_with(|| serde_json::json!({}));
+
+                if let Some(auth_obj) = auth.as_object_mut() {
+                    auth_obj.insert(
+                        "selectedType".to_string(),
+                        Value::String(selected_type.to_string()),
+                    );
+                }
             }
         }
-    }
 
-    // 写入文件
-    crate::config::write_json_file(&settings_path, &settings_content)?;
+        // 写入文件
+        let _ = crate::config::write_json_file(&settings_path, &settings_content);
+    }
 
     Ok(())
 }

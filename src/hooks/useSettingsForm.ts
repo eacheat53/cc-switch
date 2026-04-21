@@ -87,10 +87,15 @@ export function useSettingsForm(): UseSettingsFormResult {
       silentStartup: data.silentStartup ?? false,
       skipClaudeOnboarding: data.skipClaudeOnboarding ?? false,
       claudeConfigDir: sanitizeDir(data.claudeConfigDir),
+      claudeWslConfigDir: sanitizeDir(data.claudeWslConfigDir),
       codexConfigDir: sanitizeDir(data.codexConfigDir),
+      codexWslConfigDir: sanitizeDir(data.codexWslConfigDir),
       geminiConfigDir: sanitizeDir(data.geminiConfigDir),
+      geminiWslConfigDir: sanitizeDir(data.geminiWslConfigDir),
       opencodeConfigDir: sanitizeDir(data.opencodeConfigDir),
+      opencodeWslConfigDir: sanitizeDir(data.opencodeWslConfigDir),
       openclawConfigDir: sanitizeDir(data.openclawConfigDir),
+      openclawWslConfigDir: sanitizeDir(data.openclawWslConfigDir),
       language: normalizedLanguage,
     };
 
@@ -148,10 +153,15 @@ export function useSettingsForm(): UseSettingsFormResult {
         silentStartup: serverData.silentStartup ?? false,
         skipClaudeOnboarding: serverData.skipClaudeOnboarding ?? false,
         claudeConfigDir: sanitizeDir(serverData.claudeConfigDir),
+        claudeWslConfigDir: sanitizeDir(serverData.claudeWslConfigDir),
         codexConfigDir: sanitizeDir(serverData.codexConfigDir),
+        codexWslConfigDir: sanitizeDir(serverData.codexWslConfigDir),
         geminiConfigDir: sanitizeDir(serverData.geminiConfigDir),
+        geminiWslConfigDir: sanitizeDir(serverData.geminiWslConfigDir),
         opencodeConfigDir: sanitizeDir(serverData.opencodeConfigDir),
+        opencodeWslConfigDir: sanitizeDir(serverData.opencodeWslConfigDir),
         openclawConfigDir: sanitizeDir(serverData.openclawConfigDir),
+        openclawWslConfigDir: sanitizeDir(serverData.openclawWslConfigDir),
         language: normalizedLanguage,
       };
 

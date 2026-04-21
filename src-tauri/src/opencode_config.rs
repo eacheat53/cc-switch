@@ -1,7 +1,7 @@
 use crate::config::write_json_file;
 use crate::error::AppError;
 use crate::provider::OpenCodeProviderConfig;
-use crate::settings::get_opencode_override_dir;
+use crate::settings::{get_opencode_override_dir, get_opencode_wsl_override_dir};
 use indexmap::IndexMap;
 use serde_json::{json, Map, Value};
 use std::path::PathBuf;
@@ -33,13 +33,29 @@ fn canonicalize_plugin_name(plugin_name: &str) -> String {
 }
 
 pub fn get_opencode_dir() -> PathBuf {
-    if let Some(override_dir) = get_opencode_override_dir() {
-        return override_dir;
+    if let Some(custom) = get_opencode_override_dir() {
+        return custom;
+    }
+    if let Some(custom) = get_opencode_wsl_override_dir() {
+        return custom;
     }
 
-    crate::config::get_home_dir()
-        .join(".config")
-        .join("opencode")
+    crate::config::get_home_dir().join(".config").join("opencode")
+}
+
+pub fn get_all_opencode_dirs() -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+    if let Some(custom) = get_opencode_override_dir() {
+        dirs.push(custom);
+    } else {
+        dirs.push(crate::config::get_home_dir().join(".config").join("opencode"));
+    }
+    if let Some(custom) = get_opencode_wsl_override_dir() {
+        if !dirs.contains(&custom) {
+            dirs.push(custom);
+        }
+    }
+    dirs
 }
 
 pub fn get_opencode_config_path() -> PathBuf {
@@ -70,10 +86,15 @@ pub fn read_opencode_config() -> Result<Value, AppError> {
 }
 
 pub fn write_opencode_config(config: &Value) -> Result<(), AppError> {
-    let path = get_opencode_config_path();
-    write_json_file(&path, config)?;
-
-    log::debug!("OpenCode config written to {path:?}");
+    let paths = get_all_opencode_dirs();
+    for dir in paths {
+        if !dir.exists() {
+            let _ = std::fs::create_dir_all(&dir);
+        }
+        let path = dir.join("opencode.json");
+        let _ = write_json_file(&path, config);
+        log::debug!("OpenCode config written to {path:?}");
+    }
     Ok(())
 }
 

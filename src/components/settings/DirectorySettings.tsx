@@ -13,13 +13,18 @@ interface DirectorySettingsProps {
   onBrowseAppConfig: () => Promise<void>;
   onResetAppConfig: () => Promise<void>;
   claudeDir?: string;
+  claudeWslDir?: string;
   codexDir?: string;
+  codexWslDir?: string;
   geminiDir?: string;
+  geminiWslDir?: string;
   opencodeDir?: string;
+  opencodeWslDir?: string;
   openclawDir?: string;
-  onDirectoryChange: (app: AppId, value?: string) => void;
-  onBrowseDirectory: (app: AppId) => Promise<void>;
-  onResetDirectory: (app: AppId) => Promise<void>;
+  openclawWslDir?: string;
+  onDirectoryChange: (app: AppId | "claudeWsl" | "codexWsl" | "geminiWsl" | "opencodeWsl" | "openclawWsl", value?: string) => void;
+  onBrowseDirectory: (app: AppId | "claudeWsl" | "codexWsl" | "geminiWsl" | "opencodeWsl" | "openclawWsl") => Promise<void>;
+  onResetDirectory: (app: AppId | "claudeWsl" | "codexWsl" | "geminiWsl" | "opencodeWsl" | "openclawWsl") => Promise<void>;
 }
 
 export function DirectorySettings({
@@ -29,10 +34,15 @@ export function DirectorySettings({
   onBrowseAppConfig,
   onResetAppConfig,
   claudeDir,
+  claudeWslDir,
   codexDir,
+  codexWslDir,
   geminiDir,
+  geminiWslDir,
   opencodeDir,
+  opencodeWslDir,
   openclawDir,
+  openclawWslDir,
   onDirectoryChange,
   onBrowseDirectory,
   onResetDirectory,
@@ -101,6 +111,17 @@ export function DirectorySettings({
         />
 
         <DirectoryInput
+          label={t("settings.claudeWslConfigDir", { defaultValue: "Claude Code WSL 配置目录" })}
+          description={t("settings.claudeWslDescription", { defaultValue: "Specify the WSL path (e.g. \\\\wsl$\\Ubuntu\\home\\user\\.claude)" })}
+          value={claudeWslDir}
+          resolvedValue={resolvedDirs.claudeWsl}
+          placeholder="\\wsl$\Ubuntu\home\user\.claude"
+          onChange={(val) => onDirectoryChange("claudeWsl", val)}
+          onBrowse={() => onBrowseDirectory("claudeWsl")}
+          onReset={() => onResetDirectory("claudeWsl")}
+        />
+
+        <DirectoryInput
           label={t("settings.codexConfigDir")}
           description={undefined}
           value={codexDir}
@@ -109,6 +130,17 @@ export function DirectorySettings({
           onChange={(val) => onDirectoryChange("codex", val)}
           onBrowse={() => onBrowseDirectory("codex")}
           onReset={() => onResetDirectory("codex")}
+        />
+
+        <DirectoryInput
+          label={t("settings.codexWslConfigDir", { defaultValue: "Codex WSL 配置目录" })}
+          description={t("settings.codexWslDescription", { defaultValue: "Specify the WSL path (e.g. \\\\wsl$\\Ubuntu\\home\\user\\.codex)" })}
+          value={codexWslDir}
+          resolvedValue={resolvedDirs.codexWsl}
+          placeholder="\\wsl$\Ubuntu\home\user\.codex"
+          onChange={(val) => onDirectoryChange("codexWsl", val)}
+          onBrowse={() => onBrowseDirectory("codexWsl")}
+          onReset={() => onResetDirectory("codexWsl")}
         />
 
         <DirectoryInput
@@ -123,6 +155,17 @@ export function DirectorySettings({
         />
 
         <DirectoryInput
+          label={t("settings.geminiWslConfigDir", { defaultValue: "Gemini WSL 配置目录" })}
+          description={t("settings.geminiWslDescription", { defaultValue: "Specify the WSL path (e.g. \\\\wsl$\\Ubuntu\\home\\user\\.gemini)" })}
+          value={geminiWslDir}
+          resolvedValue={resolvedDirs.geminiWsl}
+          placeholder="\\wsl$\Ubuntu\home\user\.gemini"
+          onChange={(val) => onDirectoryChange("geminiWsl", val)}
+          onBrowse={() => onBrowseDirectory("geminiWsl")}
+          onReset={() => onResetDirectory("geminiWsl")}
+        />
+
+        <DirectoryInput
           label={t("settings.opencodeConfigDir")}
           description={undefined}
           value={opencodeDir}
@@ -134,6 +177,17 @@ export function DirectorySettings({
         />
 
         <DirectoryInput
+          label={t("settings.opencodeWslConfigDir", { defaultValue: "OpenCode WSL 配置目录" })}
+          description={t("settings.opencodeWslDescription", { defaultValue: "Specify the WSL path (e.g. \\\\wsl$\\Ubuntu\\home\\user\\.config\\opencode)" })}
+          value={opencodeWslDir}
+          resolvedValue={resolvedDirs.opencodeWsl}
+          placeholder="\\wsl$\Ubuntu\home\user\.config\opencode"
+          onChange={(val) => onDirectoryChange("opencodeWsl", val)}
+          onBrowse={() => onBrowseDirectory("opencodeWsl")}
+          onReset={() => onResetDirectory("opencodeWsl")}
+        />
+
+        <DirectoryInput
           label={t("settings.openclawConfigDir")}
           description={undefined}
           value={openclawDir}
@@ -142,6 +196,17 @@ export function DirectorySettings({
           onChange={(val) => onDirectoryChange("openclaw", val)}
           onBrowse={() => onBrowseDirectory("openclaw")}
           onReset={() => onResetDirectory("openclaw")}
+        />
+
+        <DirectoryInput
+          label={t("settings.openclawWslConfigDir", { defaultValue: "OpenClaw WSL 配置目录" })}
+          description={t("settings.openclawWslDescription", { defaultValue: "Specify the WSL path (e.g. \\\\wsl$\\Ubuntu\\home\\user\\.openclaw)" })}
+          value={openclawWslDir}
+          resolvedValue={resolvedDirs.openclawWsl}
+          placeholder="\\wsl$\Ubuntu\home\user\.openclaw"
+          onChange={(val) => onDirectoryChange("openclawWsl", val)}
+          onBrowse={() => onBrowseDirectory("openclawWsl")}
+          onReset={() => onResetDirectory("openclawWsl")}
         />
       </section>
     </div>
@@ -177,12 +242,16 @@ function DirectoryInput({
 
   return (
     <div className="space-y-1.5">
-      <div className="space-y-1">
-        <p className="text-xs font-medium text-foreground">{label}</p>
-        {description ? (
-          <p className="text-xs text-muted-foreground">{description}</p>
-        ) : null}
-      </div>
+      {label ? (
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-foreground">{label}</p>
+          {description ? (
+            <p className="text-xs text-muted-foreground">{description}</p>
+          ) : null}
+        </div>
+      ) : description ? (
+        <p className="text-xs text-muted-foreground">{description}</p>
+      ) : null}
       <div className="flex items-center gap-2">
         <Input
           value={displayValue}

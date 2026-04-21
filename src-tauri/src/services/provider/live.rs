@@ -665,9 +665,13 @@ impl LiveSnapshot {
 pub(crate) fn write_live_snapshot(app_type: &AppType, provider: &Provider) -> Result<(), AppError> {
     match app_type {
         AppType::Claude => {
-            let path = get_claude_settings_path();
+            let paths = crate::config::get_all_claude_settings_paths();
             let settings = sanitize_claude_settings_for_live(&provider.settings_config);
-            write_json_file(&path, &settings)?;
+            for path in paths {
+                if let Err(e) = write_json_file(&path, &settings) {
+                    log::warn!("Failed to write Claude config to {}: {}", path.display(), e);
+                }
+            }
         }
         AppType::Codex => {
             let obj = provider
@@ -681,10 +685,20 @@ pub(crate) fn write_live_snapshot(app_type: &AppType, provider: &Provider) -> Re
                 AppError::Config("Codex 供应商配置缺少 'config' 字段或不是字符串".to_string())
             })?;
 
-            let auth_path = get_codex_auth_path();
-            write_json_file(&auth_path, auth)?;
-            let config_path = get_codex_config_path();
-            std::fs::write(&config_path, config_str).map_err(|e| AppError::io(&config_path, e))?;
+            let paths = crate::codex_config::get_all_codex_config_dirs();
+            for dir_path in paths {
+                if !dir_path.exists() {
+                    let _ = std::fs::create_dir_all(&dir_path);
+                }
+                let auth_path = dir_path.join("auth.json");
+                if let Err(e) = write_json_file(&auth_path, auth) {
+                    log::warn!("Failed to write Codex auth to {}: {}", auth_path.display(), e);
+                }
+                let config_path = dir_path.join("codex.json");
+                if let Err(e) = std::fs::write(&config_path, config_str) {
+                    log::warn!("Failed to write Codex config to {}: {}", config_path.display(), e);
+                }
+            }
         }
         AppType::Gemini => {
             // Delegate to write_gemini_live which handles env file writing correctly
@@ -1092,7 +1106,7 @@ pub fn import_default_config(state: &AppState, app_type: AppType) -> Result<bool
 /// Write Gemini live configuration with authentication handling
 pub(crate) fn write_gemini_live(provider: &Provider) -> Result<(), AppError> {
     use crate::gemini_config::{
-        get_gemini_settings_path, json_to_env, validate_gemini_settings_strict,
+        json_to_env, validate_gemini_settings_strict,
         write_gemini_env_atomic,
     };
 
@@ -1105,27 +1119,27 @@ pub(crate) fn write_gemini_live(provider: &Provider) -> Result<(), AppError> {
     // Behavior:
     // - config is object: use it (merge with existing to preserve mcpServers etc.)
     // - config is null or absent: preserve existing file content
-    let settings_path = get_gemini_settings_path();
-    let mut config_to_write: Option<Value> = None;
+    let paths = crate::gemini_config::get_all_gemini_settings_paths();
+    let mut config_to_write_map: std::collections::HashMap<std::path::PathBuf, Value> = std::collections::HashMap::new();
 
     if let Some(config_value) = provider.settings_config.get("config") {
         if config_value.is_object() {
-            // Merge with existing settings to preserve mcpServers and other fields
-            let mut merged = if settings_path.exists() {
-                read_json_file::<Value>(&settings_path).unwrap_or_else(|_| json!({}))
-            } else {
-                json!({})
-            };
+            for settings_path in &paths {
+                let mut merged = if settings_path.exists() {
+                    read_json_file::<Value>(settings_path).unwrap_or_else(|_| serde_json::json!({}))
+                } else {
+                    serde_json::json!({})
+                };
 
-            // Merge provider config into existing settings
-            if let (Some(merged_obj), Some(config_obj)) =
-                (merged.as_object_mut(), config_value.as_object())
-            {
-                for (k, v) in config_obj {
-                    merged_obj.insert(k.clone(), v.clone());
+                if let (Some(merged_obj), Some(config_obj)) =
+                    (merged.as_object_mut(), config_value.as_object())
+                {
+                    for (k, v) in config_obj {
+                        merged_obj.insert(k.clone(), v.clone());
+                    }
                 }
+                config_to_write_map.insert(settings_path.clone(), merged);
             }
-            config_to_write = Some(merged);
         } else if !config_value.is_null() {
             return Err(AppError::localized(
                 "gemini.validation.invalid_config",
@@ -1133,12 +1147,17 @@ pub(crate) fn write_gemini_live(provider: &Provider) -> Result<(), AppError> {
                 "Gemini config invalid: config must be an object or null",
             ));
         }
-        // config is null: don't modify existing settings.json (preserve mcpServers etc.)
     }
 
     // If no config specified or config is null, preserve existing file
-    if config_to_write.is_none() && settings_path.exists() {
-        config_to_write = Some(read_json_file(&settings_path)?);
+    if config_to_write_map.is_empty() {
+        for settings_path in &paths {
+            if settings_path.exists() {
+                if let Ok(val) = read_json_file(settings_path) {
+                    config_to_write_map.insert(settings_path.clone(), val);
+                }
+            }
+        }
     }
 
     match auth_type {
@@ -1154,8 +1173,8 @@ pub(crate) fn write_gemini_live(provider: &Provider) -> Result<(), AppError> {
         }
     }
 
-    if let Some(config_value) = config_to_write {
-        write_json_file(&settings_path, &config_value)?;
+    for (settings_path, config_value) in config_to_write_map {
+        let _ = write_json_file(&settings_path, &config_value);
     }
 
     // Set security.auth.selectedType based on auth type
