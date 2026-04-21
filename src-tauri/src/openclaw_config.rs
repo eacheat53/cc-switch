@@ -384,7 +384,11 @@ impl OpenClawConfigDocument {
             }
             let path = dir.join("openclaw.json");
             if let Err(e) = atomic_write(&path, next_source.as_bytes()) {
-                log::warn!("Failed to write OpenClaw config to {}: {}", path.display(), e);
+                log::warn!(
+                    "Failed to write OpenClaw config to {}: {}",
+                    path.display(),
+                    e
+                );
             } else {
                 log::debug!("OpenClaw config written to {:?}", path);
             }

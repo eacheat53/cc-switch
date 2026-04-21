@@ -692,11 +692,19 @@ pub(crate) fn write_live_snapshot(app_type: &AppType, provider: &Provider) -> Re
                 }
                 let auth_path = dir_path.join("auth.json");
                 if let Err(e) = write_json_file(&auth_path, auth) {
-                    log::warn!("Failed to write Codex auth to {}: {}", auth_path.display(), e);
+                    log::warn!(
+                        "Failed to write Codex auth to {}: {}",
+                        auth_path.display(),
+                        e
+                    );
                 }
                 let config_path = dir_path.join("codex.json");
                 if let Err(e) = std::fs::write(&config_path, config_str) {
-                    log::warn!("Failed to write Codex config to {}: {}", config_path.display(), e);
+                    log::warn!(
+                        "Failed to write Codex config to {}: {}",
+                        config_path.display(),
+                        e
+                    );
                 }
             }
         }
@@ -1106,8 +1114,7 @@ pub fn import_default_config(state: &AppState, app_type: AppType) -> Result<bool
 /// Write Gemini live configuration with authentication handling
 pub(crate) fn write_gemini_live(provider: &Provider) -> Result<(), AppError> {
     use crate::gemini_config::{
-        json_to_env, validate_gemini_settings_strict,
-        write_gemini_env_atomic,
+        json_to_env, validate_gemini_settings_strict, write_gemini_env_atomic,
     };
 
     // One-time auth type detection to avoid repeated detection
@@ -1120,7 +1127,8 @@ pub(crate) fn write_gemini_live(provider: &Provider) -> Result<(), AppError> {
     // - config is object: use it (merge with existing to preserve mcpServers etc.)
     // - config is null or absent: preserve existing file content
     let paths = crate::gemini_config::get_all_gemini_settings_paths();
-    let mut config_to_write_map: std::collections::HashMap<std::path::PathBuf, Value> = std::collections::HashMap::new();
+    let mut config_to_write_map: std::collections::HashMap<std::path::PathBuf, Value> =
+        std::collections::HashMap::new();
 
     if let Some(config_value) = provider.settings_config.get("config") {
         if config_value.is_object() {

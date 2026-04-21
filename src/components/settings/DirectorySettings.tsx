@@ -22,9 +22,34 @@ interface DirectorySettingsProps {
   opencodeWslDir?: string;
   openclawDir?: string;
   openclawWslDir?: string;
-  onDirectoryChange: (app: AppId | "claudeWsl" | "codexWsl" | "geminiWsl" | "opencodeWsl" | "openclawWsl", value?: string) => void;
-  onBrowseDirectory: (app: AppId | "claudeWsl" | "codexWsl" | "geminiWsl" | "opencodeWsl" | "openclawWsl") => Promise<void>;
-  onResetDirectory: (app: AppId | "claudeWsl" | "codexWsl" | "geminiWsl" | "opencodeWsl" | "openclawWsl") => Promise<void>;
+  onDirectoryChange: (
+    app:
+      | AppId
+      | "claudeWsl"
+      | "codexWsl"
+      | "geminiWsl"
+      | "opencodeWsl"
+      | "openclawWsl",
+    value?: string,
+  ) => void;
+  onBrowseDirectory: (
+    app:
+      | AppId
+      | "claudeWsl"
+      | "codexWsl"
+      | "geminiWsl"
+      | "opencodeWsl"
+      | "openclawWsl",
+  ) => Promise<void>;
+  onResetDirectory: (
+    app:
+      | AppId
+      | "claudeWsl"
+      | "codexWsl"
+      | "geminiWsl"
+      | "opencodeWsl"
+      | "openclawWsl",
+  ) => Promise<void>;
 }
 
 export function DirectorySettings({
@@ -111,8 +136,13 @@ export function DirectorySettings({
         />
 
         <DirectoryInput
-          label={t("settings.claudeWslConfigDir", { defaultValue: "Claude Code WSL 配置目录" })}
-          description={t("settings.claudeWslDescription", { defaultValue: "Specify the WSL path (e.g. \\\\wsl$\\Ubuntu\\home\\user\\.claude)" })}
+          label={t("settings.claudeWslConfigDir", {
+            defaultValue: "Claude Code WSL 配置目录",
+          })}
+          description={t("settings.claudeWslDescription", {
+            defaultValue:
+              "Specify the WSL path (e.g. \\\\wsl$\\Ubuntu\\home\\user\\.claude)",
+          })}
           value={claudeWslDir}
           resolvedValue={resolvedDirs.claudeWsl}
           placeholder="\\wsl$\Ubuntu\home\user\.claude"
@@ -133,8 +163,13 @@ export function DirectorySettings({
         />
 
         <DirectoryInput
-          label={t("settings.codexWslConfigDir", { defaultValue: "Codex WSL 配置目录" })}
-          description={t("settings.codexWslDescription", { defaultValue: "Specify the WSL path (e.g. \\\\wsl$\\Ubuntu\\home\\user\\.codex)" })}
+          label={t("settings.codexWslConfigDir", {
+            defaultValue: "Codex WSL 配置目录",
+          })}
+          description={t("settings.codexWslDescription", {
+            defaultValue:
+              "Specify the WSL path (e.g. \\\\wsl$\\Ubuntu\\home\\user\\.codex)",
+          })}
           value={codexWslDir}
           resolvedValue={resolvedDirs.codexWsl}
           placeholder="\\wsl$\Ubuntu\home\user\.codex"
@@ -155,8 +190,13 @@ export function DirectorySettings({
         />
 
         <DirectoryInput
-          label={t("settings.geminiWslConfigDir", { defaultValue: "Gemini WSL 配置目录" })}
-          description={t("settings.geminiWslDescription", { defaultValue: "Specify the WSL path (e.g. \\\\wsl$\\Ubuntu\\home\\user\\.gemini)" })}
+          label={t("settings.geminiWslConfigDir", {
+            defaultValue: "Gemini WSL 配置目录",
+          })}
+          description={t("settings.geminiWslDescription", {
+            defaultValue:
+              "Specify the WSL path (e.g. \\\\wsl$\\Ubuntu\\home\\user\\.gemini)",
+          })}
           value={geminiWslDir}
           resolvedValue={resolvedDirs.geminiWsl}
           placeholder="\\wsl$\Ubuntu\home\user\.gemini"
@@ -177,8 +217,13 @@ export function DirectorySettings({
         />
 
         <DirectoryInput
-          label={t("settings.opencodeWslConfigDir", { defaultValue: "OpenCode WSL 配置目录" })}
-          description={t("settings.opencodeWslDescription", { defaultValue: "Specify the WSL path (e.g. \\\\wsl$\\Ubuntu\\home\\user\\.config\\opencode)" })}
+          label={t("settings.opencodeWslConfigDir", {
+            defaultValue: "OpenCode WSL 配置目录",
+          })}
+          description={t("settings.opencodeWslDescription", {
+            defaultValue:
+              "Specify the WSL path (e.g. \\\\wsl$\\Ubuntu\\home\\user\\.config\\opencode)",
+          })}
           value={opencodeWslDir}
           resolvedValue={resolvedDirs.opencodeWsl}
           placeholder="\\wsl$\Ubuntu\home\user\.config\opencode"
@@ -199,8 +244,13 @@ export function DirectorySettings({
         />
 
         <DirectoryInput
-          label={t("settings.openclawWslConfigDir", { defaultValue: "OpenClaw WSL 配置目录" })}
-          description={t("settings.openclawWslDescription", { defaultValue: "Specify the WSL path (e.g. \\\\wsl$\\Ubuntu\\home\\user\\.openclaw)" })}
+          label={t("settings.openclawWslConfigDir", {
+            defaultValue: "OpenClaw WSL 配置目录",
+          })}
+          description={t("settings.openclawWslDescription", {
+            defaultValue:
+              "Specify the WSL path (e.g. \\\\wsl$\\Ubuntu\\home\\user\\.openclaw)",
+          })}
           value={openclawWslDir}
           resolvedValue={resolvedDirs.openclawWsl}
           placeholder="\\wsl$\Ubuntu\home\user\.openclaw"

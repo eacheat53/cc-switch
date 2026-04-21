@@ -334,18 +334,18 @@ pub fn upsert_mcp_server(id: &str, spec: Value) -> Result<bool, AppError> {
         } else {
             serde_json::json!({})
         };
-        
+
         {
             let o = r.as_object_mut().unwrap(); // We know it's an object or we made it one
             if !o.contains_key("mcpServers") {
                 o.insert("mcpServers".into(), serde_json::json!({}));
             }
         }
-        
+
         if let Some(servers) = r.get_mut("mcpServers").and_then(|v| v.as_object_mut()) {
             servers.insert(id.to_string(), spec.clone());
         }
-        
+
         let _ = write_json_value(&p, &r);
     }
 

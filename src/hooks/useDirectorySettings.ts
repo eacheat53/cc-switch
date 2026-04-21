@@ -52,7 +52,13 @@ const computeDefaultAppConfigDir = async (): Promise<string | undefined> => {
 };
 
 const computeDefaultConfigDir = async (
-  app: AppId | "claudeWsl" | "codexWsl" | "geminiWsl" | "opencodeWsl" | "openclawWsl",
+  app:
+    | AppId
+    | "claudeWsl"
+    | "codexWsl"
+    | "geminiWsl"
+    | "opencodeWsl"
+    | "openclawWsl",
 ): Promise<string | undefined> => {
   try {
     if (app.endsWith("Wsl")) return undefined; // No default home path calculation for WSL
@@ -87,11 +93,36 @@ export interface UseDirectorySettingsResult {
   resolvedDirs: ResolvedDirectories;
   isLoading: boolean;
   initialAppConfigDir?: string;
-  updateDirectory: (app: AppId | "claudeWsl" | "codexWsl" | "geminiWsl" | "opencodeWsl" | "openclawWsl", value?: string) => void;
+  updateDirectory: (
+    app:
+      | AppId
+      | "claudeWsl"
+      | "codexWsl"
+      | "geminiWsl"
+      | "opencodeWsl"
+      | "openclawWsl",
+    value?: string,
+  ) => void;
   updateAppConfigDir: (value?: string) => void;
-  browseDirectory: (app: AppId | "claudeWsl" | "codexWsl" | "geminiWsl" | "opencodeWsl" | "openclawWsl") => Promise<void>;
+  browseDirectory: (
+    app:
+      | AppId
+      | "claudeWsl"
+      | "codexWsl"
+      | "geminiWsl"
+      | "opencodeWsl"
+      | "openclawWsl",
+  ) => Promise<void>;
   browseAppConfigDir: () => Promise<void>;
-  resetDirectory: (app: AppId | "claudeWsl" | "codexWsl" | "geminiWsl" | "opencodeWsl" | "openclawWsl") => Promise<void>;
+  resetDirectory: (
+    app:
+      | AppId
+      | "claudeWsl"
+      | "codexWsl"
+      | "geminiWsl"
+      | "opencodeWsl"
+      | "openclawWsl",
+  ) => Promise<void>;
   resetAppConfigDir: () => Promise<void>;
   resetAllDirectories: (
     claudeDir?: string,
@@ -251,16 +282,25 @@ export function useDirectorySettings({
         setAppConfigDir(sanitized);
       } else {
         onUpdateSettings(
-          key === "claude" ? { claudeConfigDir: sanitized } :
-          key === "claudeWsl" ? { claudeWslConfigDir: sanitized } :
-          key === "codex" ? { codexConfigDir: sanitized } :
-          key === "codexWsl" ? { codexWslConfigDir: sanitized } :
-          key === "gemini" ? { geminiConfigDir: sanitized } :
-          key === "geminiWsl" ? { geminiWslConfigDir: sanitized } :
-          key === "opencode" ? { opencodeConfigDir: sanitized } :
-          key === "opencodeWsl" ? { opencodeWslConfigDir: sanitized } :
-          key === "openclaw" ? { openclawConfigDir: sanitized } :
-          { openclawWslConfigDir: sanitized },
+          key === "claude"
+            ? { claudeConfigDir: sanitized }
+            : key === "claudeWsl"
+              ? { claudeWslConfigDir: sanitized }
+              : key === "codex"
+                ? { codexConfigDir: sanitized }
+                : key === "codexWsl"
+                  ? { codexWslConfigDir: sanitized }
+                  : key === "gemini"
+                    ? { geminiConfigDir: sanitized }
+                    : key === "geminiWsl"
+                      ? { geminiWslConfigDir: sanitized }
+                      : key === "opencode"
+                        ? { opencodeConfigDir: sanitized }
+                        : key === "opencodeWsl"
+                          ? { opencodeWslConfigDir: sanitized }
+                          : key === "openclaw"
+                            ? { openclawConfigDir: sanitized }
+                            : { openclawWslConfigDir: sanitized },
         );
       }
 
@@ -280,26 +320,55 @@ export function useDirectorySettings({
   );
 
   const updateDirectory = useCallback(
-    (app: AppId | "claudeWsl" | "codexWsl" | "geminiWsl" | "opencodeWsl" | "openclawWsl", value?: string) => {
+    (
+      app:
+        | AppId
+        | "claudeWsl"
+        | "codexWsl"
+        | "geminiWsl"
+        | "opencodeWsl"
+        | "openclawWsl",
+      value?: string,
+    ) => {
       updateDirectoryState(app as DirectoryKey, value);
     },
     [updateDirectoryState],
   );
 
   const browseDirectory = useCallback(
-    async (app: AppId | "claudeWsl" | "codexWsl" | "geminiWsl" | "opencodeWsl" | "openclawWsl") => {
+    async (
+      app:
+        | AppId
+        | "claudeWsl"
+        | "codexWsl"
+        | "geminiWsl"
+        | "opencodeWsl"
+        | "openclawWsl",
+    ) => {
       const key = app as DirectoryKey;
       const currentValue =
-        key === "claude" ? (settings?.claudeConfigDir ?? resolvedDirs.claude) :
-        key === "claudeWsl" ? (settings?.claudeWslConfigDir ?? resolvedDirs.claudeWsl) :
-        key === "codex" ? (settings?.codexConfigDir ?? resolvedDirs.codex) :
-        key === "codexWsl" ? (settings?.codexWslConfigDir ?? resolvedDirs.codexWsl) :
-        key === "gemini" ? (settings?.geminiConfigDir ?? resolvedDirs.gemini) :
-        key === "geminiWsl" ? (settings?.geminiWslConfigDir ?? resolvedDirs.geminiWsl) :
-        key === "opencode" ? (settings?.opencodeConfigDir ?? resolvedDirs.opencode) :
-        key === "opencodeWsl" ? (settings?.opencodeWslConfigDir ?? resolvedDirs.opencodeWsl) :
-        key === "openclaw" ? (settings?.openclawConfigDir ?? resolvedDirs.openclaw) :
-        (settings?.openclawWslConfigDir ?? resolvedDirs.openclawWsl);
+        key === "claude"
+          ? (settings?.claudeConfigDir ?? resolvedDirs.claude)
+          : key === "claudeWsl"
+            ? (settings?.claudeWslConfigDir ?? resolvedDirs.claudeWsl)
+            : key === "codex"
+              ? (settings?.codexConfigDir ?? resolvedDirs.codex)
+              : key === "codexWsl"
+                ? (settings?.codexWslConfigDir ?? resolvedDirs.codexWsl)
+                : key === "gemini"
+                  ? (settings?.geminiConfigDir ?? resolvedDirs.gemini)
+                  : key === "geminiWsl"
+                    ? (settings?.geminiWslConfigDir ?? resolvedDirs.geminiWsl)
+                    : key === "opencode"
+                      ? (settings?.opencodeConfigDir ?? resolvedDirs.opencode)
+                      : key === "opencodeWsl"
+                        ? (settings?.opencodeWslConfigDir ??
+                          resolvedDirs.opencodeWsl)
+                        : key === "openclaw"
+                          ? (settings?.openclawConfigDir ??
+                            resolvedDirs.openclaw)
+                          : (settings?.openclawWslConfigDir ??
+                            resolvedDirs.openclawWsl);
 
       try {
         const picked = await settingsApi.selectConfigDirectory(currentValue);
@@ -339,7 +408,15 @@ export function useDirectorySettings({
   }, [appConfigDir, resolvedDirs.appConfig, t, updateDirectoryState]);
 
   const resetDirectory = useCallback(
-    async (app: AppId | "claudeWsl" | "codexWsl" | "geminiWsl" | "opencodeWsl" | "openclawWsl") => {
+    async (
+      app:
+        | AppId
+        | "claudeWsl"
+        | "codexWsl"
+        | "geminiWsl"
+        | "opencodeWsl"
+        | "openclawWsl",
+    ) => {
       const key = app as DirectoryKey;
       if (!defaultsRef.current[key]) {
         const fallback = await computeDefaultConfigDir(app);

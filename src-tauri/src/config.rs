@@ -122,7 +122,7 @@ pub fn get_claude_settings_path() -> PathBuf {
 /// 获取所有的 Claude Code 主配置文件路径（如果同时配置了 Windows 和 WSL）
 pub fn get_all_claude_settings_paths() -> Vec<PathBuf> {
     let mut dirs = Vec::new();
-    
+
     if let Some(custom) = crate::settings::get_claude_override_dir() {
         dirs.push(custom);
     } else {
@@ -135,19 +135,21 @@ pub fn get_all_claude_settings_paths() -> Vec<PathBuf> {
         }
     }
 
-    dirs.into_iter().map(|dir| {
-        let settings = dir.join("settings.json");
-        if settings.exists() {
-            settings
-        } else {
-            let legacy = dir.join("claude.json");
-            if legacy.exists() {
-                legacy
-            } else {
+    dirs.into_iter()
+        .map(|dir| {
+            let settings = dir.join("settings.json");
+            if settings.exists() {
                 settings
+            } else {
+                let legacy = dir.join("claude.json");
+                if legacy.exists() {
+                    legacy
+                } else {
+                    settings
+                }
             }
-        }
-    }).collect()
+        })
+        .collect()
 }
 
 /// 获取应用配置目录路径 (~/.cc-switch)

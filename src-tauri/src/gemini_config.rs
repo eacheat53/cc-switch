@@ -15,7 +15,9 @@ pub fn get_gemini_dir() -> PathBuf {
     }
 
     // fallback to old ~/.cc-switch/.gemini for compatibility, or ~/.gemini if not found
-    let legacy = crate::config::get_home_dir().join(".cc-switch").join(".gemini");
+    let legacy = crate::config::get_home_dir()
+        .join(".cc-switch")
+        .join(".gemini");
     if legacy.exists() {
         return legacy;
     }
@@ -27,7 +29,9 @@ pub fn get_all_gemini_dirs() -> Vec<PathBuf> {
     if let Some(custom) = crate::settings::get_gemini_override_dir() {
         dirs.push(custom);
     } else {
-        let legacy = crate::config::get_home_dir().join(".cc-switch").join(".gemini");
+        let legacy = crate::config::get_home_dir()
+            .join(".cc-switch")
+            .join(".gemini");
         if legacy.exists() {
             dirs.push(legacy);
         } else {
@@ -179,7 +183,7 @@ pub fn read_gemini_env() -> Result<HashMap<String, String>, AppError> {
 pub fn write_gemini_env_atomic(map: &HashMap<String, String>) -> Result<(), AppError> {
     let content = serialize_env_file(map);
     let paths = get_all_gemini_env_paths();
-    
+
     for path in paths {
         // 确保目录存在
         if let Some(parent) = path.parent() {
@@ -312,7 +316,10 @@ pub fn get_gemini_env_path() -> PathBuf {
 }
 
 pub fn get_all_gemini_env_paths() -> Vec<PathBuf> {
-    get_all_gemini_dirs().into_iter().map(|d| d.join(".env")).collect()
+    get_all_gemini_dirs()
+        .into_iter()
+        .map(|d| d.join(".env"))
+        .collect()
 }
 
 /// 获取 Gemini settings.json 文件路径
@@ -323,7 +330,10 @@ pub fn get_gemini_settings_path() -> PathBuf {
 }
 
 pub fn get_all_gemini_settings_paths() -> Vec<PathBuf> {
-    get_all_gemini_dirs().into_iter().map(|d| d.join("settings.json")).collect()
+    get_all_gemini_dirs()
+        .into_iter()
+        .map(|d| d.join("settings.json"))
+        .collect()
 }
 
 /// 更新 Gemini 目录 settings.json 中的 security.auth.selectedType 字段
@@ -337,7 +347,7 @@ pub fn get_all_gemini_settings_paths() -> Vec<PathBuf> {
 /// - `selected_type`: 要设置的 selectedType 值（如 "gemini-api-key" 或 "oauth-personal"）
 fn update_selected_type(selected_type: &str) -> Result<(), AppError> {
     let paths = get_all_gemini_settings_paths();
-    
+
     for settings_path in paths {
         // 确保目录存在
         if let Some(parent) = settings_path.parent() {

@@ -40,7 +40,9 @@ pub fn get_opencode_dir() -> PathBuf {
         return custom;
     }
 
-    crate::config::get_home_dir().join(".config").join("opencode")
+    crate::config::get_home_dir()
+        .join(".config")
+        .join("opencode")
 }
 
 pub fn get_all_opencode_dirs() -> Vec<PathBuf> {
@@ -48,7 +50,11 @@ pub fn get_all_opencode_dirs() -> Vec<PathBuf> {
     if let Some(custom) = get_opencode_override_dir() {
         dirs.push(custom);
     } else {
-        dirs.push(crate::config::get_home_dir().join(".config").join("opencode"));
+        dirs.push(
+            crate::config::get_home_dir()
+                .join(".config")
+                .join("opencode"),
+        );
     }
     if let Some(custom) = get_opencode_wsl_override_dir() {
         if !dirs.contains(&custom) {
